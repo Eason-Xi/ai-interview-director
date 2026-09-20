@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Settings2,
   X,
@@ -34,6 +35,12 @@ export default function AISettingsModal() {
   const [showKey, setShowKey] = useState(false);
   const [testing, setTesting] = useState(false);
   const [hasCustomKey, setHasCustomKey] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Portal 需要在客户端挂载后才能使用
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const loadSettings = () => {
     const s = getAISettings();
@@ -145,9 +152,324 @@ export default function AISettingsModal() {
     }
   };
 
+  /* ── 抽屉面板内容（通过 Portal 渲染到 body，脱离 Header 层叠上下文） ── */
+  const drawerContent = isOpen ? (
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 99999 }}
+    >
+      {/* 遮罩层 */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: "rgba(0,0,0,0.6)",
+          backdropFilter: "blur(4px)",
+          WebkitBackdropFilter: "blur(4px)",
+        }}
+        onClick={() => setIsOpen(false)}
+      />
+
+      {/* 抽屉面板 */}
+      <div
+        style={{
+          position: "absolute",
+          right: 0,
+          top: 0,
+          bottom: 0,
+          width: "100%",
+          maxWidth: "384px",
+          display: "flex",
+          flexDirection: "column",
+          background: "var(--surface-1, #0f1117)",
+          borderLeft: "1px solid var(--line-2, rgba(255,255,255,0.08))",
+          boxShadow: "-8px 0 30px rgba(0,0,0,0.5)",
+        }}
+      >
+        {/* 头部 */}
+        <div
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "16px 20px",
+            borderBottom: "1px solid var(--line-1, rgba(255,255,255,0.06))",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <span
+              style={{
+                display: "grid",
+                placeItems: "center",
+                width: "36px",
+                height: "36px",
+                borderRadius: "12px",
+                border: "1px solid var(--line-2, rgba(255,255,255,0.08))",
+                background: "var(--surface-2, #1a1d27)",
+                color: "#a3e635",
+              }}
+            >
+              <Sparkles style={{ width: 16, height: 16 }} />
+            </span>
+            <div>
+              <h3 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-1, #f0f0f0)", margin: 0 }}>
+                AI 大模型配置
+              </h3>
+              <p style={{ fontSize: "11px", color: "var(--text-3, #6b7280)", margin: "2px 0 0 0" }}>
+                配置专属 API 密钥或使用系统默认
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsOpen(false)}
+            style={{
+              padding: "6px",
+              borderRadius: "8px",
+              border: "none",
+              background: "transparent",
+              color: "var(--text-3, #6b7280)",
+              cursor: "pointer",
+            }}
+            title="关闭 (Esc)"
+          >
+            <X style={{ width: 16, height: 16 }} />
+          </button>
+        </div>
+
+        {/* 内容区 - 可滚动 */}
+        <form
+          id="ai-settings-drawer-form"
+          onSubmit={handleSave}
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: "16px 20px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px",
+            overscrollBehavior: "contain",
+          }}
+        >
+          {/* API Key */}
+          <div
+            style={{
+              borderRadius: "12px",
+              padding: "16px",
+              border: "1px solid var(--line-2, rgba(255,255,255,0.08))",
+              background: "var(--surface-2, #1a1d27)",
+            }}
+          >
+            <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px", fontWeight: 600 }}>
+              <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "#a3e635" }}>
+                <Key style={{ width: 16, height: 16 }} />
+                API Key（大模型密钥）
+              </span>
+              <span style={{ fontSize: "10px", fontWeight: 400, color: "var(--text-3, #6b7280)" }}>
+                留空走系统 DeepSeek
+              </span>
+            </label>
+            <div style={{ position: "relative", marginTop: "10px" }}>
+              <input
+                type={showKey ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="在此输入您的 API Key（如 sk-...）"
+                autoFocus
+                className="input"
+                style={{
+                  width: "100%",
+                  paddingRight: "40px",
+                  fontFamily: "monospace",
+                  fontSize: "12px",
+                  height: "40px",
+                  borderColor: "var(--line-3, rgba(255,255,255,0.12))",
+                  background: "var(--surface-1, #0f1117)",
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey(!showKey)}
+                style={{
+                  position: "absolute",
+                  right: "10px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  padding: "4px",
+                  border: "none",
+                  background: "transparent",
+                  color: "var(--text-3, #6b7280)",
+                  cursor: "pointer",
+                }}
+                title={showKey ? "隐藏密钥" : "显示密钥"}
+              >
+                {showKey ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
+              </button>
+            </div>
+          </div>
+
+          {/* 快捷预设 */}
+          <div>
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-3, #6b7280)" }}>
+              <Zap style={{ width: 12, height: 12, color: "#fbbf24" }} />
+              一键填入常用预设
+            </label>
+            <div style={{ marginTop: "8px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+              {(Object.keys(DEFAULT_PRESETS) as Array<keyof typeof DEFAULT_PRESETS>).map(
+                (key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => handleApplyPreset(key)}
+                    style={{
+                      borderRadius: "8px",
+                      padding: "8px",
+                      textAlign: "left",
+                      fontSize: "12px",
+                      border: "1px solid var(--line-1, rgba(255,255,255,0.06))",
+                      background: "var(--surface-2, #1a1d27)",
+                      color: "var(--text-2, #c0c0c0)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div style={{ fontWeight: 500, fontSize: "11px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{DEFAULT_PRESETS[key].label}</div>
+                    <div style={{ fontSize: "10px", fontFamily: "monospace", marginTop: "2px", color: "var(--text-3, #6b7280)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {DEFAULT_PRESETS[key].model}
+                    </div>
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+
+          {/* Base URL */}
+          <div>
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 500, color: "var(--text-2, #c0c0c0)" }}>
+              <Globe style={{ width: 14, height: 14, color: "var(--text-3, #6b7280)" }} />
+              API Base URL
+            </label>
+            <input
+              type="text"
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+              placeholder="https://api.deepseek.com"
+              className="input"
+              style={{ marginTop: "6px", width: "100%", fontFamily: "monospace", fontSize: "12px", height: "36px" }}
+            />
+          </div>
+
+          {/* Model */}
+          <div>
+            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 500, color: "var(--text-2, #c0c0c0)" }}>
+              <Cpu style={{ width: 14, height: 14, color: "var(--text-3, #6b7280)" }} />
+              Model（模型名称）
+            </label>
+            <input
+              type="text"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              placeholder="deepseek-chat 或 gpt-4o-mini"
+              className="input"
+              style={{ marginTop: "6px", width: "100%", fontFamily: "monospace", fontSize: "12px", height: "36px" }}
+            />
+          </div>
+
+          {/* 当前状态 */}
+          <div
+            style={{
+              borderRadius: "12px",
+              padding: "12px",
+              fontSize: "12px",
+              lineHeight: 1.6,
+              border: "1px solid var(--line-1, rgba(255,255,255,0.06))",
+              background: "var(--surface-2, #1a1d27)",
+              color: "var(--text-3, #6b7280)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 500, color: "var(--text-2, #c0c0c0)" }}>
+              {hasCustomKey ? (
+                <>
+                  <CheckCircle2 style={{ width: 16, height: 16, flexShrink: 0, color: "#a3e635" }} />
+                  <span>已启用自定义专属 API 密钥</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles style={{ width: 16, height: 16, flexShrink: 0, color: "#818cf8" }} />
+                  <span>使用系统内置 DeepSeek 官方接口</span>
+                </>
+              )}
+            </div>
+            <p style={{ margin: "4px 0 0 0", fontSize: "11px", lineHeight: 1.5 }}>
+              密钥仅存于当前浏览器 LocalStorage，不会上传服务器。
+            </p>
+          </div>
+        </form>
+
+        {/* 底部操作栏 */}
+        <div
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "12px 20px",
+            borderTop: "1px solid var(--line-1, rgba(255,255,255,0.06))",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              type="button"
+              onClick={handleTestConnection}
+              disabled={testing || !apiKey.trim()}
+              className="btn btn-secondary btn-sm"
+              style={{ height: "32px", padding: "0 12px", fontSize: "12px" }}
+            >
+              {testing ? (
+                <Loader2 style={{ width: 14, height: 14, marginRight: 4 }} className="animate-spin" />
+              ) : (
+                <Zap style={{ width: 14, height: 14, marginRight: 4, color: "#fbbf24" }} />
+              )}
+              {testing ? "测试中..." : "测试连接"}
+            </button>
+            {hasCustomKey && (
+              <button
+                type="button"
+                onClick={handleReset}
+                className="btn btn-ghost btn-sm"
+                style={{ height: "32px", padding: "0 10px", fontSize: "12px", color: "var(--text-3, #6b7280)" }}
+                title="清空自定义配置，恢复系统默认"
+              >
+                <RotateCcw style={{ width: 12, height: 12, marginRight: 4 }} />
+                恢复默认
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="btn btn-ghost btn-sm"
+              style={{ height: "32px", padding: "0 12px", fontSize: "12px" }}
+            >
+              取消
+            </button>
+            <button
+              type="submit"
+              form="ai-settings-drawer-form"
+              className="btn btn-primary btn-sm"
+              style={{ height: "32px", padding: "0 16px", fontSize: "12px", fontWeight: 500 }}
+            >
+              保存生效
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <>
-      {/* 触发按钮 */}
+      {/* 触发按钮 —— 留在 Header 内 */}
       <button
         onClick={() => {
           loadSettings();
@@ -172,248 +494,8 @@ export default function AISettingsModal() {
         )}
       </button>
 
-      {/* 右侧抽屉 Drawer */}
-      {isOpen && (
-        <div className="fixed inset-0 z-[200] flex">
-          {/* 遮罩层 - 点击关闭 */}
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setIsOpen(false)}
-          />
-
-          {/* 抽屉面板 - 从右侧弹出，固定宽度，全屏高度 */}
-          <div
-            className="absolute right-0 top-0 h-full w-full max-w-sm flex flex-col shadow-2xl"
-            style={{
-              background: "var(--surface-1, #0f1117)",
-              borderLeft: "1px solid var(--line-2, rgba(255,255,255,0.08))",
-            }}
-          >
-            {/* 头部 - 固定 */}
-            <div
-              className="shrink-0 flex items-center justify-between px-5 py-4"
-              style={{ borderBottom: "1px solid var(--line-1, rgba(255,255,255,0.06))" }}
-            >
-              <div className="flex items-center gap-3">
-                <span
-                  className="grid h-9 w-9 shrink-0 place-items-center rounded-xl"
-                  style={{
-                    border: "1px solid var(--line-2, rgba(255,255,255,0.08))",
-                    background: "var(--surface-2, #1a1d27)",
-                    color: "#a3e635",
-                  }}
-                >
-                  <Sparkles className="h-4 w-4" />
-                </span>
-                <div>
-                  <h3 className="text-sm font-semibold tracking-tight" style={{ color: "var(--text-1, #f0f0f0)" }}>
-                    AI 大模型配置
-                  </h3>
-                  <p className="text-[11px] mt-0.5" style={{ color: "var(--text-3, #6b7280)" }}>
-                    配置专属 API 密钥或使用系统默认
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="rounded-lg p-1.5 transition-colors hover:opacity-70"
-                style={{ color: "var(--text-3, #6b7280)" }}
-                title="关闭 (Esc)"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* 内容区 - 可滚动 */}
-            <form
-              id="ai-settings-drawer-form"
-              onSubmit={handleSave}
-              className="flex-1 overflow-y-auto px-5 py-4 space-y-4"
-              style={{ overscrollBehavior: "contain" }}
-            >
-              {/* API Key 输入框 */}
-              <div
-                className="rounded-xl p-4"
-                style={{
-                  border: "1px solid var(--line-2, rgba(255,255,255,0.08))",
-                  background: "var(--surface-2, #1a1d27)",
-                }}
-              >
-                <label className="flex items-center justify-between text-xs font-semibold">
-                  <span className="flex items-center gap-1.5" style={{ color: "#a3e635" }}>
-                    <Key className="h-4 w-4" />
-                    API Key（大模型密钥）
-                  </span>
-                  <span className="text-[10px] font-normal" style={{ color: "var(--text-3, #6b7280)" }}>
-                    留空走系统 DeepSeek
-                  </span>
-                </label>
-                <div className="relative mt-2.5">
-                  <input
-                    type={showKey ? "text" : "password"}
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="在此输入您的 API Key（如 sk-...）"
-                    autoFocus
-                    className="input w-full pr-10 font-mono text-xs h-10"
-                    style={{
-                      borderColor: "var(--line-3, rgba(255,255,255,0.12))",
-                      background: "var(--surface-1, #0f1117)",
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowKey(!showKey)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 transition-opacity hover:opacity-70"
-                    style={{ color: "var(--text-3, #6b7280)" }}
-                    title={showKey ? "隐藏密钥" : "显示密钥"}
-                  >
-                    {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* 快捷预设 */}
-              <div>
-                <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-3, #6b7280)" }}>
-                  <Zap className="h-3 w-3" style={{ color: "#fbbf24" }} />
-                  一键填入常用预设
-                </label>
-                <div className="mt-2 grid grid-cols-2 gap-1.5">
-                  {(Object.keys(DEFAULT_PRESETS) as Array<keyof typeof DEFAULT_PRESETS>).map(
-                    (key) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => handleApplyPreset(key)}
-                        className="rounded-lg p-2 text-left text-xs transition-all hover:opacity-80"
-                        style={{
-                          border: "1px solid var(--line-1, rgba(255,255,255,0.06))",
-                          background: "var(--surface-2, #1a1d27)",
-                          color: "var(--text-2, #c0c0c0)",
-                        }}
-                      >
-                        <div className="font-medium text-[11px] truncate">{DEFAULT_PRESETS[key].label}</div>
-                        <div className="text-[10px] truncate font-mono mt-0.5" style={{ color: "var(--text-3, #6b7280)" }}>
-                          {DEFAULT_PRESETS[key].model}
-                        </div>
-                      </button>
-                    )
-                  )}
-                </div>
-              </div>
-
-              {/* Base URL */}
-              <div>
-                <label className="flex items-center gap-1.5 text-xs font-medium" style={{ color: "var(--text-2, #c0c0c0)" }}>
-                  <Globe className="h-3.5 w-3.5" style={{ color: "var(--text-3, #6b7280)" }} />
-                  API Base URL
-                </label>
-                <input
-                  type="text"
-                  value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
-                  placeholder="https://api.deepseek.com"
-                  className="input mt-1.5 w-full font-mono text-xs h-9"
-                />
-              </div>
-
-              {/* Model */}
-              <div>
-                <label className="flex items-center gap-1.5 text-xs font-medium" style={{ color: "var(--text-2, #c0c0c0)" }}>
-                  <Cpu className="h-3.5 w-3.5" style={{ color: "var(--text-3, #6b7280)" }} />
-                  Model（模型名称）
-                </label>
-                <input
-                  type="text"
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  placeholder="deepseek-chat 或 gpt-4o-mini"
-                  className="input mt-1.5 w-full font-mono text-xs h-9"
-                />
-              </div>
-
-              {/* 当前状态提示 */}
-              <div
-                className="rounded-xl p-3 text-xs leading-relaxed"
-                style={{
-                  border: "1px solid var(--line-1, rgba(255,255,255,0.06))",
-                  background: "var(--surface-2, #1a1d27)",
-                  color: "var(--text-3, #6b7280)",
-                }}
-              >
-                <div className="flex items-center gap-2 font-medium" style={{ color: "var(--text-2, #c0c0c0)" }}>
-                  {hasCustomKey ? (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: "#a3e635" }} />
-                      <span>已启用自定义专属 API 密钥</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4 shrink-0" style={{ color: "#818cf8" }} />
-                      <span>使用系统内置 DeepSeek 官方接口</span>
-                    </>
-                  )}
-                </div>
-                <p className="mt-1 text-[11px] leading-normal">
-                  密钥仅存于当前浏览器 LocalStorage，不会上传服务器。
-                </p>
-              </div>
-            </form>
-
-            {/* 底部操作栏 - 固定吸底 */}
-            <div
-              className="shrink-0 flex items-center justify-between px-5 py-3"
-              style={{ borderTop: "1px solid var(--line-1, rgba(255,255,255,0.06))" }}
-            >
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleTestConnection}
-                  disabled={testing || !apiKey.trim()}
-                  className="btn btn-secondary btn-sm h-8 px-3 text-xs"
-                >
-                  {testing ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                  ) : (
-                    <Zap className="h-3.5 w-3.5 mr-1" style={{ color: "#fbbf24" }} />
-                  )}
-                  {testing ? "测试中..." : "测试连接"}
-                </button>
-                {hasCustomKey && (
-                  <button
-                    type="button"
-                    onClick={handleReset}
-                    className="btn btn-ghost btn-sm h-8 px-2.5 text-xs"
-                    style={{ color: "var(--text-3, #6b7280)" }}
-                    title="清空自定义配置，恢复系统默认"
-                  >
-                    <RotateCcw className="h-3 w-3 mr-1" />
-                    恢复默认
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="btn btn-ghost btn-sm h-8 px-3 text-xs"
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  form="ai-settings-drawer-form"
-                  className="btn btn-primary btn-sm h-8 px-4 text-xs font-medium"
-                >
-                  保存生效
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 通过 Portal 将抽屉渲染到 document.body，彻底脱离 Header 的 z-index 层叠上下文 */}
+      {mounted && drawerContent && createPortal(drawerContent, document.body)}
     </>
   );
 }
