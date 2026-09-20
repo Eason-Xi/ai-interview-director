@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Settings2,
@@ -15,6 +15,7 @@ import {
   RotateCcw,
   Sparkles,
   Zap,
+  ShieldAlert,
 } from "lucide-react";
 import clsx from "clsx";
 import {
@@ -23,7 +24,6 @@ import {
   clearAISettings,
   DEFAULT_PRESETS,
   SETTINGS_CHANGE_EVENT,
-  type AISettings,
 } from "@/lib/client-settings";
 import { toast } from "@/components/ui/Feedback";
 
@@ -37,7 +37,6 @@ export default function AISettingsModal() {
   const [hasCustomKey, setHasCustomKey] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Portal 需要在客户端挂载后才能使用
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -57,7 +56,7 @@ export default function AISettingsModal() {
     return () => window.removeEventListener(SETTINGS_CHANGE_EVENT, handleSync);
   }, []);
 
-  // ESC 键关闭
+  // ESC 键快捷关闭
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -83,7 +82,7 @@ export default function AISettingsModal() {
     const p = DEFAULT_PRESETS[presetKey];
     setBaseUrl(p.baseUrl);
     setModel(p.model);
-    toast.info(`已应用 ${p.label} 模板`, "已自动填入 Base URL 和 Model，请在上方填入您的 Key 即可。");
+    toast.info(`已选用 ${p.label} 模板`, "已自动填入 Base URL 和 Model，请填入您的 API Key 即可。");
   };
 
   const handleSave = (e?: React.FormEvent) => {
@@ -97,8 +96,8 @@ export default function AISettingsModal() {
     toast.success(
       "AI 配置已保存",
       apiKey.trim()
-        ? "已成功切换至您的专属自定义大模型"
-        : "已恢复为服务端系统默认 DeepSeek 官方服务"
+        ? "已切换至您的专属自定义大模型"
+        : "已恢复为服务端系统内置 DeepSeek 官方服务"
     );
     setIsOpen(false);
   };
@@ -152,48 +151,57 @@ export default function AISettingsModal() {
     }
   };
 
-  /* ── 抽屉面板内容（通过 Portal 渲染到 body，脱离 Header 层叠上下文） ── */
+  /* ── 抽屉面板内容（100% 纯黑实体背板 + 超高对比度文字） ── */
   const drawerContent = isOpen ? (
     <div
-      style={{ position: "fixed", inset: 0, zIndex: 99999 }}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 99999,
+        display: "flex",
+        justifyContent: "flex-end",
+      }}
     >
-      {/* 遮罩层 */}
+      {/* 遮罩层 - 深沉暗黑模糊 */}
       <div
         style={{
           position: "absolute",
           inset: 0,
-          backgroundColor: "rgba(0,0,0,0.6)",
-          backdropFilter: "blur(4px)",
-          WebkitBackdropFilter: "blur(4px)",
+          backgroundColor: "rgba(0, 0, 0, 0.72)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          transition: "opacity 0.25s ease",
         }}
         onClick={() => setIsOpen(false)}
       />
 
-      {/* 抽屉面板 */}
+      {/* 抽屉面板 - 100% 不透明实心纯黑背景，拒绝任何透底 */}
       <div
+        className="animate-fade"
         style={{
-          position: "absolute",
-          right: 0,
-          top: 0,
-          bottom: 0,
+          position: "relative",
+          zIndex: 1,
           width: "100%",
-          maxWidth: "384px",
+          maxWidth: "460px",
+          height: "100%",
           display: "flex",
           flexDirection: "column",
-          background: "var(--surface-1, #0f1117)",
-          borderLeft: "1px solid var(--line-2, rgba(255,255,255,0.08))",
-          boxShadow: "-8px 0 30px rgba(0,0,0,0.5)",
+          backgroundColor: "#0d1117", // 纯色实心黑曜石底色，绝不透底
+          borderLeft: "1px solid rgba(255, 255, 255, 0.12)",
+          boxShadow: "-12px 0 45px rgba(0, 0, 0, 0.85)",
+          color: "#f1f5f9",
         }}
       >
-        {/* 头部 */}
+        {/* 1. 顶部 Header */}
         <div
           style={{
             flexShrink: 0,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "16px 20px",
-            borderBottom: "1px solid var(--line-1, rgba(255,255,255,0.06))",
+            padding: "18px 24px",
+            backgroundColor: "#111620", // 稍浅实心纯色
+            borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -201,34 +209,52 @@ export default function AISettingsModal() {
               style={{
                 display: "grid",
                 placeItems: "center",
-                width: "36px",
-                height: "36px",
+                width: "38px",
+                height: "38px",
                 borderRadius: "12px",
-                border: "1px solid var(--line-2, rgba(255,255,255,0.08))",
-                background: "var(--surface-2, #1a1d27)",
-                color: "#a3e635",
+                backgroundColor: "rgba(201, 255, 99, 0.12)",
+                border: "1px solid rgba(201, 255, 99, 0.28)",
+                color: "#c9ff63",
               }}
             >
-              <Sparkles style={{ width: 16, height: 16 }} />
+              <Sparkles style={{ width: 18, height: 18 }} />
             </span>
             <div>
-              <h3 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-1, #f0f0f0)", margin: 0 }}>
-                AI 大模型配置
+              <h3
+                style={{
+                  fontSize: "15px",
+                  fontWeight: 700,
+                  color: "#ffffff",
+                  margin: 0,
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                AI 大模型接入配置
               </h3>
-              <p style={{ fontSize: "11px", color: "var(--text-3, #6b7280)", margin: "2px 0 0 0" }}>
-                配置专属 API 密钥或使用系统默认
+              <p
+                style={{
+                  fontSize: "12px",
+                  color: "#94a3b8",
+                  margin: "3px 0 0 0",
+                }}
+              >
+                配置您的专属 API 密钥或使用系统默认
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={() => setIsOpen(false)}
             style={{
-              padding: "6px",
-              borderRadius: "8px",
-              border: "none",
-              background: "transparent",
-              color: "var(--text-3, #6b7280)",
+              padding: "8px",
+              borderRadius: "10px",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              backgroundColor: "rgba(255, 255, 255, 0.04)",
+              color: "#94a3b8",
               cursor: "pointer",
+              display: "grid",
+              placeItems: "center",
+              transition: "all 0.15s ease",
             }}
             title="关闭 (Esc)"
           >
@@ -236,54 +262,89 @@ export default function AISettingsModal() {
           </button>
         </div>
 
-        {/* 内容区 - 可滚动 */}
+        {/* 2. 中间表单区域 - 独立滚动 */}
         <form
           id="ai-settings-drawer-form"
           onSubmit={handleSave}
           style={{
             flex: 1,
             overflowY: "auto",
-            padding: "16px 20px",
+            padding: "24px",
             display: "flex",
             flexDirection: "column",
-            gap: "16px",
-            overscrollBehavior: "contain",
+            gap: "20px",
+            backgroundColor: "#0d1117",
           }}
         >
-          {/* API Key */}
+          {/* API Key 核心输入区 */}
           <div
             style={{
-              borderRadius: "12px",
-              padding: "16px",
-              border: "1px solid var(--line-2, rgba(255,255,255,0.08))",
-              background: "var(--surface-2, #1a1d27)",
+              borderRadius: "14px",
+              padding: "16px 18px",
+              backgroundColor: "#141924",
+              border: "1px solid rgba(201, 255, 99, 0.25)",
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.35)",
             }}
           >
-            <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "12px", fontWeight: 600 }}>
-              <span style={{ display: "flex", alignItems: "center", gap: "6px", color: "#a3e635" }}>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                fontSize: "13px",
+                fontWeight: 600,
+              }}
+            >
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  color: "#c9ff63",
+                }}
+              >
                 <Key style={{ width: 16, height: 16 }} />
                 API Key（大模型密钥）
               </span>
-              <span style={{ fontSize: "10px", fontWeight: 400, color: "var(--text-3, #6b7280)" }}>
+              <span
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 400,
+                  color: "#94a3b8",
+                }}
+              >
                 留空走系统 DeepSeek
               </span>
             </label>
-            <div style={{ position: "relative", marginTop: "10px" }}>
+
+            <div style={{ position: "relative", marginTop: "12px" }}>
               <input
                 type={showKey ? "text" : "password"}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="在此输入您的 API Key（如 sk-...）"
+                placeholder="在此粘贴 API Key（如 sk-xxx）"
                 autoFocus
-                className="input"
                 style={{
                   width: "100%",
-                  paddingRight: "40px",
-                  fontFamily: "monospace",
-                  fontSize: "12px",
-                  height: "40px",
-                  borderColor: "var(--line-3, rgba(255,255,255,0.12))",
-                  background: "var(--surface-1, #0f1117)",
+                  height: "44px",
+                  padding: "0 44px 0 14px",
+                  borderRadius: "10px",
+                  backgroundColor: "#0b0e14",
+                  border: "1px solid rgba(255, 255, 255, 0.16)",
+                  color: "#ffffff",
+                  fontFamily: "var(--font-mono, monospace)",
+                  fontSize: "13px",
+                  outline: "none",
+                  boxSizing: "border-box",
+                  transition: "border-color 0.2s",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = "#c9ff63";
+                  e.currentTarget.style.boxShadow = "0 0 0 3px rgba(201, 255, 99, 0.15)";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.16)";
+                  e.currentTarget.style.boxShadow = "none";
                 }}
               />
               <button
@@ -291,14 +352,16 @@ export default function AISettingsModal() {
                 onClick={() => setShowKey(!showKey)}
                 style={{
                   position: "absolute",
-                  right: "10px",
+                  right: "12px",
                   top: "50%",
                   transform: "translateY(-50%)",
-                  padding: "4px",
+                  padding: "6px",
                   border: "none",
                   background: "transparent",
-                  color: "var(--text-3, #6b7280)",
+                  color: "#94a3b8",
                   cursor: "pointer",
+                  display: "grid",
+                  placeItems: "center",
                 }}
                 title={showKey ? "隐藏密钥" : "显示密钥"}
               >
@@ -307,13 +370,32 @@ export default function AISettingsModal() {
             </div>
           </div>
 
-          {/* 快捷预设 */}
+          {/* 快捷预设卡片组 */}
           <div>
-            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-3, #6b7280)" }}>
-              <Zap style={{ width: 12, height: 12, color: "#fbbf24" }} />
-              一键填入常用预设
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "12px",
+                fontWeight: 600,
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+                color: "#94a3b8",
+              }}
+            >
+              <Zap style={{ width: 14, height: 14, color: "#fbbf24" }} />
+              一键填入常用大模型预设
             </label>
-            <div style={{ marginTop: "8px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+
+            <div
+              style={{
+                marginTop: "10px",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "8px",
+              }}
+            >
               {(Object.keys(DEFAULT_PRESETS) as Array<keyof typeof DEFAULT_PRESETS>).map(
                 (key) => (
                   <button
@@ -321,18 +403,46 @@ export default function AISettingsModal() {
                     type="button"
                     onClick={() => handleApplyPreset(key)}
                     style={{
-                      borderRadius: "8px",
-                      padding: "8px",
+                      borderRadius: "10px",
+                      padding: "10px 12px",
                       textAlign: "left",
-                      fontSize: "12px",
-                      border: "1px solid var(--line-1, rgba(255,255,255,0.06))",
-                      background: "var(--surface-2, #1a1d27)",
-                      color: "var(--text-2, #c0c0c0)",
+                      backgroundColor: "#141924",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
                       cursor: "pointer",
+                      transition: "all 0.18s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = "#1a2130";
+                      e.currentTarget.style.borderColor = "rgba(201, 255, 99, 0.4)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "#141924";
+                      e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)";
                     }}
                   >
-                    <div style={{ fontWeight: 500, fontSize: "11px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{DEFAULT_PRESETS[key].label}</div>
-                    <div style={{ fontSize: "10px", fontFamily: "monospace", marginTop: "2px", color: "var(--text-3, #6b7280)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: "#f1f5f9",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {DEFAULT_PRESETS[key].label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        color: "#94a3b8",
+                        fontFamily: "var(--font-mono, monospace)",
+                        marginTop: "3px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
                       {DEFAULT_PRESETS[key].model}
                     </div>
                   </button>
@@ -341,26 +451,63 @@ export default function AISettingsModal() {
             </div>
           </div>
 
-          {/* Base URL */}
+          {/* API Base URL 输入框 */}
           <div>
-            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 500, color: "var(--text-2, #c0c0c0)" }}>
-              <Globe style={{ width: 14, height: 14, color: "var(--text-3, #6b7280)" }} />
-              API Base URL
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "12px",
+                fontWeight: 600,
+                color: "#cbd5e1",
+              }}
+            >
+              <Globe style={{ width: 14, height: 14, color: "#94a3b8" }} />
+              API Base URL（接口根地址）
             </label>
             <input
               type="text"
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
               placeholder="https://api.deepseek.com"
-              className="input"
-              style={{ marginTop: "6px", width: "100%", fontFamily: "monospace", fontSize: "12px", height: "36px" }}
+              style={{
+                marginTop: "8px",
+                width: "100%",
+                height: "40px",
+                padding: "0 14px",
+                borderRadius: "10px",
+                backgroundColor: "#141924",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                color: "#ffffff",
+                fontFamily: "var(--font-mono, monospace)",
+                fontSize: "12px",
+                outline: "none",
+                boxSizing: "border-box",
+                transition: "border-color 0.2s",
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "#c9ff63";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
+              }}
             />
           </div>
 
-          {/* Model */}
+          {/* Model 输入框 */}
           <div>
-            <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 500, color: "var(--text-2, #c0c0c0)" }}>
-              <Cpu style={{ width: 14, height: 14, color: "var(--text-3, #6b7280)" }} />
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "12px",
+                fontWeight: 600,
+                color: "#cbd5e1",
+              }}
+            >
+              <Cpu style={{ width: 14, height: 14, color: "#94a3b8" }} />
               Model（模型名称）
             </label>
             <input
@@ -368,51 +515,84 @@ export default function AISettingsModal() {
               value={model}
               onChange={(e) => setModel(e.target.value)}
               placeholder="deepseek-chat 或 gpt-4o-mini"
-              className="input"
-              style={{ marginTop: "6px", width: "100%", fontFamily: "monospace", fontSize: "12px", height: "36px" }}
+              style={{
+                marginTop: "8px",
+                width: "100%",
+                height: "40px",
+                padding: "0 14px",
+                borderRadius: "10px",
+                backgroundColor: "#141924",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                color: "#ffffff",
+                fontFamily: "var(--font-mono, monospace)",
+                fontSize: "12px",
+                outline: "none",
+                boxSizing: "border-box",
+                transition: "border-color 0.2s",
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "#c9ff63";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
+              }}
             />
           </div>
 
-          {/* 当前状态 */}
+          {/* 当前状态与安全性提示卡片 */}
           <div
             style={{
               borderRadius: "12px",
-              padding: "12px",
-              fontSize: "12px",
-              lineHeight: 1.6,
-              border: "1px solid var(--line-1, rgba(255,255,255,0.06))",
-              background: "var(--surface-2, #1a1d27)",
-              color: "var(--text-3, #6b7280)",
+              padding: "14px 16px",
+              backgroundColor: "#141924",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 500, color: "var(--text-2, #c0c0c0)" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "12px",
+                fontWeight: 600,
+                color: hasCustomKey ? "#c9ff63" : "#818cf8",
+              }}
+            >
               {hasCustomKey ? (
                 <>
-                  <CheckCircle2 style={{ width: 16, height: 16, flexShrink: 0, color: "#a3e635" }} />
-                  <span>已启用自定义专属 API 密钥</span>
+                  <CheckCircle2 style={{ width: 16, height: 16, flexShrink: 0 }} />
+                  <span>当前状态：已启用自定义专属 API 密钥</span>
                 </>
               ) : (
                 <>
-                  <Sparkles style={{ width: 16, height: 16, flexShrink: 0, color: "#818cf8" }} />
-                  <span>使用系统内置 DeepSeek 官方接口</span>
+                  <Sparkles style={{ width: 16, height: 16, flexShrink: 0 }} />
+                  <span>当前状态：使用系统内置 DeepSeek 官方服务</span>
                 </>
               )}
             </div>
-            <p style={{ margin: "4px 0 0 0", fontSize: "11px", lineHeight: 1.5 }}>
-              密钥仅存于当前浏览器 LocalStorage，不会上传服务器。
+            <p
+              style={{
+                margin: "6px 0 0 0",
+                fontSize: "11px",
+                lineHeight: "1.6",
+                color: "#94a3b8",
+              }}
+            >
+              密钥严格保存在您浏览器的本地 LocalStorage 中，不会泄露或写入公共代码库。
             </p>
           </div>
         </form>
 
-        {/* 底部操作栏 */}
+        {/* 3. 固定吸底操作栏 */}
         <div
           style={{
             flexShrink: 0,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "12px 20px",
-            borderTop: "1px solid var(--line-1, rgba(255,255,255,0.06))",
+            padding: "16px 24px",
+            backgroundColor: "#111620", // 实心不透明底色
+            borderTop: "1px solid rgba(255, 255, 255, 0.08)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -420,44 +600,88 @@ export default function AISettingsModal() {
               type="button"
               onClick={handleTestConnection}
               disabled={testing || !apiKey.trim()}
-              className="btn btn-secondary btn-sm"
-              style={{ height: "32px", padding: "0 12px", fontSize: "12px" }}
+              style={{
+                height: "36px",
+                padding: "0 14px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                fontWeight: 600,
+                color: "#f1f5f9",
+                backgroundColor: "rgba(255, 255, 255, 0.08)",
+                border: "1px solid rgba(255, 255, 255, 0.12)",
+                cursor: testing || !apiKey.trim() ? "not-allowed" : "pointer",
+                opacity: testing || !apiKey.trim() ? 0.45 : 1,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
             >
               {testing ? (
-                <Loader2 style={{ width: 14, height: 14, marginRight: 4 }} className="animate-spin" />
+                <Loader2 style={{ width: 14, height: 14 }} className="animate-spin" />
               ) : (
-                <Zap style={{ width: 14, height: 14, marginRight: 4, color: "#fbbf24" }} />
+                <Zap style={{ width: 14, height: 14, color: "#fbbf24" }} />
               )}
               {testing ? "测试中..." : "测试连接"}
             </button>
+
             {hasCustomKey && (
               <button
                 type="button"
                 onClick={handleReset}
-                className="btn btn-ghost btn-sm"
-                style={{ height: "32px", padding: "0 10px", fontSize: "12px", color: "var(--text-3, #6b7280)" }}
+                style={{
+                  height: "36px",
+                  padding: "0 10px",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                  color: "#94a3b8",
+                  backgroundColor: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
                 title="清空自定义配置，恢复系统默认"
               >
-                <RotateCcw style={{ width: 12, height: 12, marginRight: 4 }} />
+                <RotateCcw style={{ width: 12, height: 12 }} />
                 恢复默认
               </button>
             )}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="btn btn-ghost btn-sm"
-              style={{ height: "32px", padding: "0 12px", fontSize: "12px" }}
+              style={{
+                height: "36px",
+                padding: "0 14px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                fontWeight: 500,
+                color: "#94a3b8",
+                backgroundColor: "transparent",
+                border: "none",
+                cursor: "pointer",
+              }}
             >
               取消
             </button>
             <button
               type="submit"
               form="ai-settings-drawer-form"
-              className="btn btn-primary btn-sm"
-              style={{ height: "32px", padding: "0 16px", fontSize: "12px", fontWeight: 500 }}
+              style={{
+                height: "36px",
+                padding: "0 18px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                fontWeight: 700,
+                backgroundColor: "#c9ff63",
+                color: "#0b0c0f",
+                border: "none",
+                cursor: "pointer",
+                boxShadow: "0 4px 16px rgba(201, 255, 99, 0.4)",
+              }}
             >
               保存生效
             </button>
@@ -469,7 +693,7 @@ export default function AISettingsModal() {
 
   return (
     <>
-      {/* 触发按钮 —— 留在 Header 内 */}
+      {/* 触发按钮 */}
       <button
         onClick={() => {
           loadSettings();
@@ -494,7 +718,7 @@ export default function AISettingsModal() {
         )}
       </button>
 
-      {/* 通过 Portal 将抽屉渲染到 document.body，彻底脱离 Header 的 z-index 层叠上下文 */}
+      {/* 通过 Portal 挂载到 body 顶层 */}
       {mounted && drawerContent && createPortal(drawerContent, document.body)}
     </>
   );
