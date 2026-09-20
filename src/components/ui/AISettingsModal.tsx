@@ -64,7 +64,7 @@ export default function AISettingsModal() {
     const p = DEFAULT_PRESETS[presetKey];
     setBaseUrl(p.baseUrl);
     setModel(p.model);
-    toast.info(`已应用 ${p.label} 模板`, "请在下方填入您的专属 API Key 即可。");
+    toast.info(`已应用 ${p.label} 模板`, "已自动填入 Base URL 和 Model，请在上方填入您的 Key 即可。");
   };
 
   const handleSave = (e?: React.FormEvent) => {
@@ -160,16 +160,16 @@ export default function AISettingsModal() {
         )}
       </button>
 
-      {/* 弹窗模态框 */}
+      {/* 弹窗模态框：使用 items-start 与 pt-16/pt-20 确保弹窗下沉舒适排列，彻底避免顶部负坐标溢出截断 */}
       {isOpen && (
         <div
-          className="animate-fade fixed inset-0 z-[120] flex items-center justify-center bg-black/75 p-3 sm:p-4 backdrop-blur-md"
+          className="animate-fade fixed inset-0 z-[120] overflow-y-auto bg-black/75 p-3 sm:p-4 backdrop-blur-md flex justify-center items-start pt-14 sm:pt-20 pb-12"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setIsOpen(false);
           }}
         >
-          <div className="glass-panel animate-scale-in relative flex max-h-[min(90vh,680px)] w-full max-w-lg flex-col rounded-2xl border border-line-2 bg-[color:var(--surface-1)] shadow-2xl overflow-hidden">
-            {/* 1. 固定头部 (Sticky Header) */}
+          <div className="glass-panel animate-scale-in relative flex max-h-[calc(100vh-6rem)] w-full max-w-lg flex-col rounded-2xl border border-line-2 bg-[color:var(--surface-1)] shadow-2xl overflow-hidden">
+            {/* 1. 固定头部 */}
             <div className="shrink-0 flex items-center justify-between border-b border-line-1 px-5 py-3.5 bg-[color:var(--surface-1)]">
               <div className="flex items-center gap-3">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-line-2 bg-surface-2 text-lime-400">
@@ -180,7 +180,7 @@ export default function AISettingsModal() {
                     AI 大模型接入配置
                   </h3>
                   <p className="text-[11px] text-3">
-                    自定义专属模型密钥（BYOK）或使用系统默认 DeepSeek
+                    配置您的专属 API 密钥或使用系统默认服务
                   </p>
                 </div>
               </div>
@@ -193,64 +193,65 @@ export default function AISettingsModal() {
               </button>
             </div>
 
-            {/* 2. 可滚动主体 (Scrollable Body) */}
+            {/* 2. 可滚动主体 */}
             <form
               id="ai-settings-form"
               onSubmit={handleSave}
               className="flex-1 overflow-y-auto px-5 py-4 space-y-4 overscroll-contain"
             >
-              {/* 快捷模板 */}
+              {/* 【核心置顶】API Key 输入框 —— 第一眼映入眼帘 */}
+              <div className="rounded-xl border border-line-2 bg-surface-2/60 p-3.5">
+                <label className="flex items-center justify-between text-xs font-semibold text-1">
+                  <span className="flex items-center gap-1.5 text-lime-400">
+                    <Key className="h-4 w-4" />
+                    API Key（大模型密钥）
+                  </span>
+                  <span className="text-[10px] text-3 font-normal">
+                    留空则默认走系统 DeepSeek
+                  </span>
+                </label>
+                <div className="relative mt-2">
+                  <input
+                    type={showKey ? "text" : "password"}
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="在此输入您的 API Key（如 sk-...）"
+                    autoFocus
+                    className="input w-full pr-10 font-mono text-xs h-10 border-line-3 focus:border-lime-400 bg-[color:var(--surface-1)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(!showKey)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-3 hover:text-1 transition-colors p-1"
+                    title={showKey ? "隐藏密钥" : "显示密钥"}
+                  >
+                    {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* 快捷模板药丸标签 */}
               <div>
                 <label className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-3">
                   <Zap className="h-3 w-3 text-amber-400" />
-                  一键应用常用预设
+                  一键填入常用预设
                 </label>
-                <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="mt-1.5 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                   {(Object.keys(DEFAULT_PRESETS) as Array<keyof typeof DEFAULT_PRESETS>).map(
                     (key) => (
                       <button
                         key={key}
                         type="button"
                         onClick={() => handleApplyPreset(key)}
-                        className="rounded-lg border border-line-1 bg-surface-2 p-2 text-left text-xs text-2 hover:border-lime-500/40 hover:bg-surface-3 hover:text-1 transition-all"
+                        className="rounded-lg border border-line-1 bg-surface-2 px-2 py-1.5 text-left text-xs text-2 hover:border-lime-500/40 hover:bg-surface-3 hover:text-1 transition-all"
                       >
                         <div className="font-medium text-[11px] truncate">{DEFAULT_PRESETS[key].label}</div>
-                        <div className="text-[10px] text-3 truncate font-mono mt-0.5">
+                        <div className="text-[10px] text-3 truncate font-mono">
                           {DEFAULT_PRESETS[key].model}
                         </div>
                       </button>
                     )
                   )}
-                </div>
-              </div>
-
-              {/* API Key */}
-              <div>
-                <label className="flex items-center justify-between text-xs font-medium text-2">
-                  <span className="flex items-center gap-1.5">
-                    <Key className="h-3.5 w-3.5 text-3" />
-                    API Key（密钥）
-                  </span>
-                  <span className="text-[10px] text-3">
-                    留空则默认使用系统内置 DeepSeek
-                  </span>
-                </label>
-                <div className="relative mt-1.5">
-                  <input
-                    type={showKey ? "text" : "password"}
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="sk-..."
-                    className="input w-full pr-10 font-mono text-xs h-9"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowKey(!showKey)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-3 hover:text-1 transition-colors"
-                    title={showKey ? "隐藏密钥" : "显示密钥"}
-                  >
-                    {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
                 </div>
               </div>
 
@@ -300,12 +301,12 @@ export default function AISettingsModal() {
                   )}
                 </div>
                 <p className="mt-1 text-[11px] text-3 leading-normal">
-                  自定义密钥仅存储在您当前浏览器的 LocalStorage 中，不会同步到任何远程服务器或代码仓库。
+                  自定义密钥仅保存在当前浏览器的 LocalStorage 中，不会上传服务器或公开。
                 </p>
               </div>
             </form>
 
-            {/* 3. 固定吸底尾部 (Sticky Footer) */}
+            {/* 3. 固定吸底尾部 */}
             <div className="shrink-0 flex items-center justify-between border-t border-line-1 bg-[color:var(--surface-1)]/95 px-5 py-3 backdrop-blur-sm">
               <div className="flex items-center gap-2">
                 <button
